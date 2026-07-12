@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Карта бесплатной воды</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=04aa77c3-e464-422b-aaea-6d9d6ed556a0&lang=ru_RU" type="text/javascript"></script>
+    <style>
+        body, html { padding: 0; margin: 0; width: 100%; height: 100%; }
+        #map { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        ymaps.ready(init);
+
+        function init() {
+            // Центрируем карту на Москве
+            var myMap = new ymaps.Map("map", {
+                center: [55.751574, 37.573856],
+                zoom: 10,
+                controls: ['zoomControl', 'geolocationControl']
+            });
+
+            // Создаем кластеризатор (те самые кружки с цифрами)
+            var clusterer = new ymaps.Clusterer({
+                preset: 'islands#violetClusterIcons', // Фиолетовый цвет как у WB
+                groupByCoordinates: false,
+                clusterDisableClickZoom: false,
+                clusterHideIconOnBalloonOpen: false,
+                geoObjectHideIconOnBalloonOpen: false
+            });
+
+            // ТВОЯ БАЗА КУЛЕРОВ. Чтобы добавить новый, просто скопируй блок и измени координаты.
+            var waterPoints = [
+                {
+                    coordinates: [55.755819, 37.617644], // Координаты (Широта, Долгота)
+                    title: "Кулер в ТЦ Охотный Ряд",
+                    description: "Вода: Отличная<br>Стаканчики: Есть<br>Рейтинг: 5/5"
+                },
+                {
+                    coordinates: [55.760000, 37.620000],
+                    title: "Поликлиника №1",
+                    description: "Вода: Обычная<br>Стаканчики: Свои<br>Рейтинг: 3/5"
+                }
+            ];
+
+            var geoObjects = [];
+
+            // Проходимся по базе и создаем точки
+            for (var i = 0; i < waterPoints.length; i++) {
+                geoObjects[i] = new ymaps.Placemark(waterPoints[i].coordinates, {
+                    balloonContentHeader: waterPoints[i].title,
+                    balloonContentBody: waterPoints[i].description
+                }, {
+                    preset: 'islands#violetWaterCircleIcon' // Иконка одиночной точки
+                });
+            }
+
+            // Добавляем точки в кластеризатор, а кластеризатор на карту
+            clusterer.add(geoObjects);
+            myMap.geoObjects.add(clusterer);
+        }
+    </script>
+</body>
+</html>
