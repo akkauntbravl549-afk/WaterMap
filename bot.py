@@ -1,20 +1,32 @@
 import os
 import telebot
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from flask import Flask
+from threading import Thread
 
-# Получаем данные из настроек Render
+# Настройки
 TOKEN = os.environ.get('BOT_TOKEN')
 ADMIN_ID = int(os.environ.get('ADMIN_ID'))
+WEB_APP_URL = 'https://akkauntbravl549-afk.github.io/WaterMap/'
 
 bot = telebot.TeleBot(TOKEN)
-WEB_APP_URL = 'https://akkauntbravl549-afk.github.io/WaterMap/'
 pending_submissions = {}
 
+# Создаем веб-сервер для прохождения проверки портов Render
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Бот работает!"
+
+def run_web():
+    app.run(host='0.0.0.0', port=8080)
+
+# Логика бота
 @bot.message_handler(commands=['start'])
 def start_message(message):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
-    web_app = WebAppInfo(url=WEB_APP_URL)
-    btn = KeyboardButton(text="💧 Открыть карту воды", web_app=web_app)
+    btn = KeyboardButton(text="💧 Открыть карту воды", web_app={"url": WEB_APP_URL})
     markup.add(btn)
     bot.send_message(message.chat.id, "Привет! Используй /add для предложки.", reply_markup=markup)
 
@@ -32,7 +44,7 @@ def save_coordinates(message):
 
 def save_photo(message):
     if message.content_type != 'photo':
-        bot.send_message(message.chat.id, "Это не фото!")
+        bot.send_message(message.chat.id, "Нужно отправить фото!")
         bot.register_next_step_handler(message, save_photo)
         return
     
@@ -50,7 +62,10 @@ def save_photo(message):
 def handle_mod(call):
     action, uid = call.data.split('_')
     if action == "approve":
-        bot.send_message(int(uid), "Одобрено!")
+        bot.send_message(int(uid), "Твоя точка одобрена!")
         bot.edit_message_caption(chat_id=ADMIN_ID, message_id=call.message.message_id, caption=call.message.caption + "\n🟢 Одобрено", reply_markup=None)
 
-bot.polling(none_stop=True)
+# Запуск сервера в отдельном потоке и бота
+if __name__ == '__main__':
+    Thread(target=run_web).start()
+    bot.polling(none_stop=True)
