@@ -10,7 +10,7 @@ TOKEN = os.environ.get('BOT_TOKEN')
 ADMIN_ID = int(os.environ.get('ADMIN_ID'))
 WEB_APP_URL = 'https://akkauntbravl549-afk.github.io/WaterMap/'
 
-# Инициализация бота с увеличенным таймаутом
+# Инициализация бота
 bot = telebot.TeleBot(TOKEN, threaded=True)
 bot.timeout = 60
 
@@ -24,29 +24,33 @@ def home():
 def run_web():
     app.run(host='0.0.0.0', port=8080)
 
-# Логика бота
+# Команда /start
 @bot.message_handler(commands=['start'])
 def start_message(message):
+    # Принудительно сбрасываем любые зависшие шаги
+    bot.clear_step_handler_by_chat_id(message.chat.id)
+    
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     btn = KeyboardButton(text="💧 Открыть карту воды", web_app={"url": WEB_APP_URL})
     markup.add(btn)
     bot.send_message(message.chat.id, "Привет! Используй /add для предложки.", reply_markup=markup)
 
+# Команда /add
 @bot.message_handler(commands=['add'])
 def start_add(message):
-    user_id = message.chat.id
-    pending_submissions[user_id] = {}
-    bot.send_message(user_id, "📍 Пришли координаты:")
+    bot.clear_step_handler_by_chat_id(message.chat.id)
+    pending_submissions[message.chat.id] = {}
+    bot.send_message(message.chat.id, "📍 Шаг 1/2: Пришли координаты:")
     bot.register_next_step_handler(message, save_coordinates)
 
 def save_coordinates(message):
     pending_submissions[message.chat.id]['coords'] = message.text
-    bot.send_message(message.chat.id, "📸 Пришли фото кулера:")
+    bot.send_message(message.chat.id, "📸 Шаг 2/2: Пришли фото кулера:")
     bot.register_next_step_handler(message, save_photo)
 
 def save_photo(message):
     if not message.photo:
-        bot.send_message(message.chat.id, "Нужно отправить фото!")
+        bot.send_message(message.chat.id, "Нужно отправить фото! Попробуй еще раз или напиши /start для отмены.")
         bot.register_next_step_handler(message, save_photo)
         return
     
@@ -69,14 +73,14 @@ def handle_mod(call):
 
 # Главный цикл запуска
 if __name__ == '__main__':
-    # Запуск веб-сервера в отдельном потоке
+    # Запуск веб-сервера
     threading.Thread(target=run_web, daemon=True).start()
     
-    # Вечный цикл запуска бота с автоперезапуском при ошибках
+    # Запуск бота с автоперезапуском
     while True:
         try:
             print("Бот запущен и слушает Telegram...")
             bot.polling(none_stop=True, interval=0, timeout=60)
         except Exception as e:
-            print(f"Произошла ошибка: {e}. Перезапуск через 5 секунд...")
+            print(f"Ошибка: {e}. Перезапуск через 5 секунд...")
             time.sleep(5)
