@@ -12,7 +12,7 @@ WEB_APP_URL = 'https://akkauntbravl549-afk.github.io/WaterMap/'
 bot = telebot.TeleBot(TOKEN)
 pending_submissions = {}
 
-# Создаем веб-сервер для прохождения проверки портов Render
+# Веб-сервер для прохождения проверки портов Render
 app = Flask('')
 
 @app.route('/')
@@ -65,7 +65,12 @@ def handle_mod(call):
         bot.send_message(int(uid), "Твоя точка одобрена!")
         bot.edit_message_caption(chat_id=ADMIN_ID, message_id=call.message.message_id, caption=call.message.caption + "\n🟢 Одобрено", reply_markup=None)
 
-# Запуск сервера в отдельном потоке и бота
+# Запуск
 if __name__ == '__main__':
+    # Запускаем веб-сервер
     Thread(target=run_web).start()
-    bot.polling(none_stop=True)
+    
+    # Принудительно очищаем вебхуки и запускаем бота с пропуском старых запросов
+    bot.remove_webhook()
+    print("Бот запускается...")
+    bot.infinity_polling(none_stop=True, skip_pending=True)
