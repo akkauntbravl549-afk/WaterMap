@@ -66,11 +66,9 @@
     "import telebot\n",
     "from telebot.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton\n",
     "\n",
-    "# Твой токен от @BotFather\n",
-    "TOKEN = '8609236930:AAHExw0HXJMBMTNSUPL1F5DXaqLZBmsiRS8'\n",
-    "\n",
-    "# ВСТАВЬ СЮДА СВОЙ ЦИФРОВОЙ ID, КОТОРЫЙ УЗНАЛ В @userinfobot\n",
-    "ADMIN_ID = 5265210907 \n",
+    import os
+TOKEN = os.environ.get('BOT_TOKEN')
+ADMIN_ID = int(os.environ.get('ADMIN_ID'))
     "\n",
     "bot = telebot.TeleBot(TOKEN)\n",
     "\n",
