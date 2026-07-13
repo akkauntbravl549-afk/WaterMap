@@ -76,11 +76,20 @@ if __name__ == '__main__':
     # Запуск веб-сервера
     threading.Thread(target=run_web, daemon=True).start()
     
+    # ПРИНУДИТЕЛЬНО СНОСИМ ЛЮБЫЕ ВЕБХУКИ
+    try:
+        print("Очистка вебхуков...")
+        bot.remove_webhook()
+        time.sleep(2)
+    except Exception as e:
+        print(f"Ошибка при очистке вебхука: {e}")
+    
     # Запуск бота с автоперезапуском
     while True:
         try:
             print("Бот запущен и слушает Telegram...")
-            bot.polling(none_stop=True, interval=0, timeout=60)
+            # skip_pending=True сбросит все зависшие запросы
+            bot.polling(none_stop=True, interval=0, timeout=60, skip_pending=True)
         except Exception as e:
             print(f"Ошибка: {e}. Перезапуск через 5 секунд...")
             time.sleep(5)
