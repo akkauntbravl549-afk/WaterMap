@@ -1,14 +1,19 @@
 import os
 import telebot
 import threading
+import time
 from flask import Flask
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
+# Настройки
 TOKEN = os.environ.get('BOT_TOKEN')
 ADMIN_ID = int(os.environ.get('ADMIN_ID'))
 WEB_APP_URL = 'https://akkauntbravl549-afk.github.io/WaterMap/'
 
-bot = telebot.TeleBot(TOKEN)
+# Инициализация бота с увеличенным таймаутом
+bot = telebot.TeleBot(TOKEN, threaded=True)
+bot.timeout = 60
+
 app = Flask(__name__)
 pending_submissions = {}
 
@@ -16,7 +21,10 @@ pending_submissions = {}
 def home():
     return "Бот работает!"
 
-# Команды
+def run_web():
+    app.run(host='0.0.0.0', port=8080)
+
+# Логика бота
 @bot.message_handler(commands=['start'])
 def start_message(message):
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -59,6 +67,16 @@ def handle_mod(call):
         bot.send_message(int(uid), "Твоя точка одобрена!")
         bot.edit_message_caption(chat_id=ADMIN_ID, message_id=call.message.message_id, caption=call.message.caption + "\n🟢 Одобрено", reply_markup=None)
 
+# Главный цикл запуска
 if __name__ == '__main__':
-    threading.Thread(target=lambda: app.run(host='0.0.0.0', port=8080)).start()
-    bot.polling(none_stop=True)
+    # Запуск веб-сервера в отдельном потоке
+    threading.Thread(target=run_web, daemon=True).start()
+    
+    # Вечный цикл запуска бота с автоперезапуском при ошибках
+    while True:
+        try:
+            print("Бот запущен и слушает Telegram...")
+            bot.polling(none_stop=True, interval=0, timeout=60)
+        except Exception as e:
+            print(f"Произошла ошибка: {e}. Перезапуск через 5 секунд...")
+            time.sleep(5)
