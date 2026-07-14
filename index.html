@@ -16,26 +16,26 @@
         ymaps.ready(init);
 
         function init() {
-            // Центрируем карту на Москве
             var myMap = new ymaps.Map("map", {
                 center: [55.751574, 37.573856],
                 zoom: 10,
                 controls: ['zoomControl', 'geolocationControl']
             });
 
-            // Создаем кластеризатор (те самые кружки с цифрами)
             var clusterer = new ymaps.Clusterer({
-                preset: 'islands#violetClusterIcons', // Фиолетовый цвет как у WB
+                preset: 'islands#violetClusterIcons',
                 groupByCoordinates: false,
                 clusterDisableClickZoom: false,
                 clusterHideIconOnBalloonOpen: false,
                 geoObjectHideIconOnBalloonOpen: false
             });
 
-            // ТВОЯ БАЗА КУЛЕРОВ. Чтобы добавить новый, просто скопируй блок и измени координаты.
-            var waterPoints = [
+            var geoObjects = [];
+
+            // 1. РУЧНЫЕ ТОЧКИ
+            var manualPoints = [
                 {
-                    coordinates: [55.868368, 37.491889], // Координаты (Широта, Долгота)
+                    coordinates: [55.868368, 37.491889],
                     title: "Кулер в женской поликлинике",
                     description: "Вода: Отличная<br>Стаканчики: Есть<br>Рейтинг: 5/5"
                 },
@@ -51,21 +51,54 @@
                 }
             ];
 
-            var geoObjects = [];
-
-            // Проходимся по базе и создаем точки
-            for (var i = 0; i < waterPoints.length; i++) {
-                geoObjects[i] = new ymaps.Placemark(waterPoints[i].coordinates, {
-                    balloonContentHeader: waterPoints[i].title,
-                    balloonContentBody: waterPoints[i].description
+            manualPoints.forEach(function(pt) {
+                var placemark = new ymaps.Placemark(pt.coordinates, {
+                    balloonContentHeader: pt.title,
+                    balloonContentBody: pt.description
                 }, {
-                    preset: 'islands#violetWaterCircleIcon' // Иконка одиночной точки
+                    preset: 'islands#violetWaterCircleIcon'
                 });
-            }
+                geoObjects.push(placemark);
+            });
 
-            // Добавляем точки в кластеризатор, а кластеризатор на карту
-            clusterer.add(geoObjects);
-            myMap.geoObjects.add(clusterer);
+            // 2. АВТО-ТОЧКИ ИЗ JSON
+            Promise.all([
+                fetch('polyclinics.json').then(res => res.ok ? res.json() : []).catch(() => []),
+                fetch('drinkit.json').then(res => res.ok ? res.json() : []).catch(() => [])
+            ]).then(function([polyclinics, drinkit]) {
+
+                // Поликлиники (медицинский крестик)
+                polyclinics.forEach(function(pt) {
+                    if (pt.lat && pt.lng) {
+                        var placemark = new ymaps.Placemark([pt.lat, pt.lng], {
+                            balloonContentHeader: pt.title,
+                            balloonContentBody: '<b>Адрес:</b> ' + pt.address + '<br><b>Тип:</b> Поликлиника / Больница'
+                        }, {
+                            preset: 'islands#violetMedicalCircleIcon'
+                        });
+                        geoObjects.push(placemark);
+                    }
+                });
+
+                // Дринкит (логотип с синим китом)
+                drinkit.forEach(function(pt) {
+                    if (pt.lat && pt.lng) {
+                        var placemark = new ymaps.Placemark([pt.lat, pt.lng], {
+                            balloonContentHeader: pt.title,
+                            balloonContentBody: '<b>Адрес:</b> ' + pt.address + '<br><b>Тип:</b> Кофейня Дринкит'
+                        }, {
+                            iconLayout: 'default#image',
+                            iconImageHref: 'drinkit.PNG', // Твой логотип кита из репозитория
+                            iconImageSize: [32, 32],      // Размер маркер-картинки на карте
+                            iconImageOffset: [-16, -16]    // Смещение для точного центрирования
+                        });
+                        geoObjects.push(placemark);
+                    }
+                });
+
+                clusterer.add(geoObjects);
+                myMap.geoObjects.add(clusterer);
+            });
         }
     </script>
 </body>
